@@ -1,0 +1,12 @@
+```{r}
+#Function returns 10 names with highest TF-IDF, takes breed as argument, writting as regular expression to be inclusive of variations, i.e. unique_breed_name(Corgi) would return results for Pembrooke Welsh Corgi, Cardigan Welsh Corgi, and all variations
+
+unique_breed_name <- function(Breed)
+  doggos %>% 
+  count(BreedName,AnimalName) %>%
+  group_by(BreedName) %>%
+  summarize_tf_idf(AnimalName,n) %>%
+  arrange(-.tf_idf) %>%
+  filter(str_detect(BreedName, Breed))
+  head(10)
+```
