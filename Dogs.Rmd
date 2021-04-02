@@ -1,0 +1,41 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+
+```{r}
+library(tidyverse)
+library(HumanitiesDataAnalysis)
+library(arrow)
+```
+
+```{r}
+doggos <- read_feather("dogs.feather")
+
+```
+
+```{r}
+
+doggos %>%
+  filter(BreedName == "Golden Retriever") %>%
+  count(AnimalName) %>%
+  arrange(-n)
+  
+
+doggos %>%
+  filter(AnimalName == "BUDDY") %>%
+  count(BreedName) %>%
+  arrange(-n)
+
+```
+
+```{r}
+
+download.file("http")
+neighborhoods = read_sf("/drobo/Downloads/Neighborhood Tabulation Areas (NTA).geojson")
+
+
+neighborhoods %>% ggplot() + geom_sf()
+```
