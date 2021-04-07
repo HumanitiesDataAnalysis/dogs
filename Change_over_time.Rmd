@@ -1,0 +1,10 @@
+---
+title: "What names get more popular?"
+author: "Ben Schmidt"
+date: "4/7/2021"
+output: html_document
+---
+
+Look at the different birth dates of dogs to find names that get notably more popular 
+from extract to extract. Like, do people start naming their dogs after some 
+pop culture figures on TV suddenly?
