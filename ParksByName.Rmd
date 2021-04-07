@@ -5,22 +5,13 @@ date: "4/7/2021"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
 
 ## Abstract
 
 This article intends to address which names are more common in which dog parks.
 
-```{r cars}
-summary(cars)
-```
+```{r}
 
-## Including Plots
+doggos = read_feather("dogs.feather")
 
-There will totally be plots in this article! A nice venn diagram, maybe.
-
-```{r pressure, echo=FALSE}
-plot(pressure)
 ```
