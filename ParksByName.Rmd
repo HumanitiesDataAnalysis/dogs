@@ -11,6 +11,7 @@ output: html_document
 This article intends to address which names are more common in which dog parks.
 
 ```{r}
+library(tidyverse)
 
 doggos = read_feather("dogs.feather")
 
