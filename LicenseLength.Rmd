@@ -1,0 +1,26 @@
+---
+title: "R Notebook"
+author: "Giuliana Manca"
+date: "04/07/2021"
+output: html_notebook
+---
+```{r}
+library(tidyverse)
+library(arrow)
+library(lubridate)
+doggos <- read_feather("dogs.feather")
+```
+
+The below extracts dates written as characters, turns them into workable date format, then calculates how long the license is good for and adds all those columns to a data frame. Next step could be to find variation in license length by zipcode, dog age, and/or breed.
+
+```{r}
+doggos %>%
+  mutate(issued = parse_date_time(LicenseIssuedDate, "%m %d %y"),
+         expiry = parse_date_time(LicenseExpiredDate, "%m %d %y"),
+         i2e = issued %--% expiry, 
+         license_duration = as.duration(i2e),  
+         license_period = as.period(i2e)) 
+
+# license_duration gives exact seconds with an estimate in years.
+# license_period is the same info as license_duration but in a more intelligible format and more granularity 
+```
