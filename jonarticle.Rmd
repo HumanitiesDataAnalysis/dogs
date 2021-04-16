@@ -19,5 +19,7 @@ doggos <- read_feather("dogs.feather")
 
 ```
 
-start cleaning breed names
+start cleaning:
+utils doc to clean remove duplicate dogs 
+breed names
 then join with the dog size
