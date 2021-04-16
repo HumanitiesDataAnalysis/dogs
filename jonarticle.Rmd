@@ -12,14 +12,53 @@ dog names by size
 library(tidyverse)
 library(HumanitiesDataAnalysis)
 library(arrow)
+source("R/loading.R")
+source("R/utils.R")
 ```
 
 ```{r}
-doggos <- read_feather("dogs.feather")
+doggos <- load_dogs() %>% exclude_duplicate_dogs()
 
 ```
 
 start cleaning:
 utils doc to clean remove duplicate dogs 
-breed names
-then join with the dog size
+
+
+Clean names
+
+At the start, we're missing 85,297 dogs.
+```{r}
+
+breed_sizes <- read_csv("data/breed_sizes.csv")
+
+
+# Use an anti-join to perfect data cleaning
+doggos %>% count(BreedName) %>% mutate(
+  Breed = BreedName
+  ) %>%
+  anti_join(breed_sizes) %>% summarize(missing = sum(n))
+
+```
+```{r}
+
+cleaned = doggos %>% count(BreedName) %>% mutate(
+  # Some regular expressions to normalize.
+  Breed = BreedName %>% 
+    str_replace(" Crossbreed", "") %>%
+    str_replace(" [Mm]ix", "") %>%
+    str_replace(" ", "") %>%
+    str_replace("Havanese", "Shih Tzu") # Bad, but could be improved
+  ) %>%
+  anti_join(breed_sizes) %>% arrange(-n)
+
+sum(cleaned$n)
+
+breed_sizes %>% filter(Breed %>% str_detect("nese"))
+```
+
+Create some categorical variable indicating size.
+
+```{r}
+
+```
