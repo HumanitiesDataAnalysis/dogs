@@ -1,0 +1,15 @@
+---
+title: "Dog Name Trends"
+output: html_notebook
+---
+
+
+```{r}
+source("R/loading.R")
+source("R/utils.R")
+
+data = load_dogs()
+data
+
+```
+
