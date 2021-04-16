@@ -5,3 +5,19 @@ output: html_notebook
 
 
 jon's article here
+
+dog names by size
+
+```{r}
+library(tidyverse)
+library(HumanitiesDataAnalysis)
+library(arrow)
+```
+
+```{r}
+doggos <- read_feather("dogs.feather")
+
+```
+
+start cleaning breed names
+then join with the dog size
