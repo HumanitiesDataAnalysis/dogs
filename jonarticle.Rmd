@@ -17,6 +17,7 @@ source("R/utils.R")
 ```
 
 ```{r}
+
 doggos <- load_dogs() %>% exclude_duplicate_dogs()
 
 ```
@@ -29,36 +30,362 @@ Clean names
 
 At the start, we're missing 85,297 dogs.
 ```{r}
+##cleaning and creating new fields in the breed sizes file
+#fix fox terrier string
+breed_sizes <- read_csv("data/breed_sizes.csv") %>% mutate(Breed = Breed %>%
+  str_replace("Fox Terrier ��� Smooth", "Fox Terrier")) %>%
+  # convert height and weight to numeric
+  transform(height_low_inches = as.numeric(height_low_inches),
+            height_high_inches = as.numeric(height_high_inches),
+            weight_low_lbs = as.numeric(weight_low_lbs),
+            weight_high_lbs = as.numeric(weight_high_lbs))%>%
+  #make range and average (technically also the median) height and weight for each breed
+  mutate(height_range = (height_high_inches - height_low_inches))%>%
+  mutate(weight_range = (weight_high_lbs - weight_low_lbs))%>%
+  mutate(height_av = (height_high_inches + height_low_inches)/2)%>%
+  mutate(weight_av = (weight_high_lbs + weight_low_lbs)/2)
+```
+Create some categorical variable indicating size:
+most dog "size" categories online are based on weight alone, though some crate manufacturers also take into account height/length. size categories are from onlydogbreeds dot com: 
+  # Toy: up to 12lbs
+  # Small: 12 - 25lbs
+  # Medium: 25 - 50lbs
+  # Large: 50 - 100lbs
+  # Extra Large (giant): 100+lbs
 
-breed_sizes <- read_csv("data/breed_sizes.csv")
+Breed size categories will be created with average weight
+```{r}
+breed_sizes = breed_sizes %>%
+  mutate(sizes = ifelse(weight_av <= 12, "Toy",
+            ifelse(weight_av > 12 & weight_av <= 25, "Small",
+            ifelse(weight_av > 25 & weight_av <= 50, "Medium",
+            ifelse(weight_av > 50 & weight_av <= 100, "Large",
+            ifelse(weight_av > 100, "Extra Large", NA
+            ))))))%>%
+  mutate(sizes = as.factor(sizes))
+```
 
 
+
+```{r}
 # Use an anti-join to perfect data cleaning
 doggos %>% count(BreedName) %>% mutate(
   Breed = BreedName
   ) %>%
   anti_join(breed_sizes) %>% summarize(missing = sum(n))
-
 ```
-```{r}
 
-cleaned = doggos %>% count(BreedName) %>% mutate(
-  # Some regular expressions to normalize.
+```{r}
+  # Some regular expressions to normalize breed names.
+  # replace breeds with no match in breed size file with breed of comparable height/weight: str_replace("Havanese", "Shih Tzu") # Bad, but could be improved
+  #Consolidating all dog breeds with 15≥ records in doggos dataset
+
+cleanedcount = doggos %>% count(BreedName) %>% mutate(
   Breed = BreedName %>% 
+    str_replace("Mastiff, French \\(Dogue de Bordeaux\\)","Bullmastiff")%>%
+    str_replace("Terrier mix" ,"Fox Terrier")%>%
+    str_replace("^Terrier Crossbreed" ,"Fox Terrier")%>%
     str_replace(" Crossbreed", "") %>%
-    str_replace(" [Mm]ix", "") %>%
-    str_replace(" ", "") %>%
-    str_replace("Havanese", "Shih Tzu") # Bad, but could be improved
+    str_replace_all(" [Mm]ix", "") %>%
+    str_replace("American Pit Bull / Pit Bull" ,"Bull Terrier")  %>%
+    str_replace("American Pit Bull Terrier/Pit Bull" ,"Bull Terrier")%>%
+    str_replace("Bull Dog, English", "Bull Dog")%>%
+    str_replace("^Bulldog$", "Bull Dog")%>%
+    str_replace("^Cocker Spaniel" ,"Cocker Spaniel-American")%>%
+    str_replace("Havanese" ,"Bichon Frise")%>%
+    str_replace("German Shepherd Dog" ,"German Shepherd Dog")%>%
+    str_replace("German Shepherd$" ,"German Shepherd Dog")%>%
+    str_replace("Poodle$" ,"Poodle Miniature")%>%
+    str_replace("Poodle, Toy" ,"Poodle Toy")%>%
+    str_replace("Poodle, Miniature" ,"Poodle Miniature")%>%
+    str_replace("Schnauzer, Miniature" ,"Poodle Miniature")%>%
+    str_replace("Labradoodle" ,"Labrador Retriever")%>%
+    str_replace("Miniature Pinscher" ,"Poodle Miniature")%>%
+    str_replace("Goldendoodle" ,"Poodle Standard")%>%
+    str_replace("Poodle, Standard" ,"Poodle Standard")%>%
+    str_replace("Morkie" ,"Yorkshire Terrier")%>%
+    str_replace("Puggle" ,"Beagle")%>%
+    str_replace("Bull Dog, French" ,"French Bulldog")%>%
+    str_replace("Lhasa Apso" ,"Shih Tzu")%>%
+    str_replace("Dachshund Smooth Coat" ,"Dachshund")%>%
+    str_replace("Miniature Schnauzer" ,"Poodle Miniature")%>%
+    str_replace("Rat Terrier" ,"Boston Terrier")%>%
+    str_replace("Wheaton Terrier" ,"Soft-Coated Wheaten Terrier")%>%
+    str_replace("Maltipoo" ,"Poodle Toy")%>%
+    str_replace("West High White Terrier" ,"West Highland White Terrier")%>%
+    str_replace("Pekingese" ,"Shih Tzu")%>%
+    str_replace("Dachshund Smooth Coat Miniature" ,"Dachshund")%>%
+    str_replace("Dachshund Miniature" ,"Dachshund")%>%
+    str_replace("Dachshund, Long Haired Miniature" ,"Dachshund")%>%
+    str_replace("American Bully" ,"Bull Terrier")%>%
+    str_replace("American Eskimo dog" ,"American Eskimo")%>%
+    str_replace("Shetland Sheepdog" ,"Shetland Sheepdog (Sheltie)")%>%
+    str_replace("Welsh Corgi, Pembroke" ,"Cardigan Welsh Corgi")%>%
+    str_replace("Pembroke Welsh Corgi" ,"Cardigan Welsh Corgi")%>%
+    str_replace("Cane Corso" ,"Rottweiler")%>%
+    str_replace("Collie, Border" ,"Border Collie")%>%
+    str_replace("^Collie$" ,"Border Collie")%>%
+    str_replace("Shar-Pei, Chinese" ,"Chinese Shar Pei")%>%
+    str_replace("Schnauzer, Standard" ,"Standard Schnauzer")%>%
+    str_replace("Dachshund, Long Haired" ,"Dachshund")%>%
+    str_replace("Wire Fox Terrier" ,"Fox Terrier")%>%
+    str_replace("^Schnauzer$" ,"Standard Schnauzer")%>%
+    str_replace("Jack Russell Terrier" ,"Fox Terrier")%>%
+    str_replace("Bassett Hound" ,"Basset Hound")%>%
+    str_replace("Shepard" ,"Australian Shepherd")%>%
+    str_replace("Cockapoo" ,"Poodle Miniature")%>%
+    str_replace("Welsh Corgi, Cardigan" ,"Cardigan Welsh Corgi")%>%
+    str_replace("Soft Coated Wheaten Terrier" ,"Soft-Coated Wheaten Terrier")%>%
+    str_replace("Bull Dog, American" ,"Bull Dog")%>%
+    str_replace("Norfolk Terrier" ,"Silky Terrier")%>%
+    str_replace("Chinese Shar-Pei" ,"Chinese Shar Pei")%>%
+    str_replace("Pointer, German Shorthaired" ,"German Shorthaired Pointer")%>%
+    str_replace("Collie, Rough Coat" ,"Collie (Rough) & (Smooth)")%>%
+    str_replace("Mastiff, Old English" ,"Mastiff")%>%
+    str_replace("Schnauzer, Giant" ,"Giant Schnauzer")%>%
+    str_replace("^Russell Terrier" ,"Fox Terrier")%>%
+    str_replace("Parson Russell Terrier" ,"Fox Terrier")%>%
+    str_replace("Mastiff, Neapolitan" ,"Neopolitan Mastiff")%>%
+    str_replace("Pointer, German Wirehaired" ,"German Wirehaired Pointer")%>%
+    str_replace("German Spitz" ,"Finnish Spitz")%>%
+    str_replace("Collie, Bearded" ,"Bearded Collie")%>%
+    str_replace("St. Bernard" ,"Saint Bernard")%>%
+    str_replace("Dogue de Bordeaux" ,"Bullmastiff")%>%
+    str_replace("Australian Cattledog","Australian Cattle Dog")%>%
+    str_replace("English Cocker Spaniel", "Cocker Spaniel-English")%>%
+    str_replace("Plott", "Plott Hound")%>%
+    str_replace("Miniature American Shepherd","Standard Schnauzer")%>%
+    str_replace("Cotton De Tulear","Coton de Tulear")%>%
+    str_replace("Norwich Terrier","Silky Terrier")%>%
+    str_replace("Coonhound, Black and Tan","Black And Tan Coonhound")%>%
+    str_replace("Coonhound, Treeing Walker","Black And Tan Coonhound")%>%
+    str_replace("Black and Tan Coonhound","Black And Tan Coonhound")%>%
+    str_replace("Treeing Walker Coonhound","Black And Tan Coonhound")%>%
+    str_replace("Bluetick Coonhound","Black And Tan Coonhound")%>%
+    str_replace("American English Coonhound","Black And Tan Coonhound")%>%
+    str_replace("Coonhound, Blue Tick","Black And Tan Coonhound")%>%
+    str_replace("Miniature Australian Shepherd","Standard Schnauzer")%>%
+    str_replace("Catahoula Leopard Dog","Beauceron")%>%
+    str_replace("Jindo Dog, Korea","Harrier")%>%
+    str_replace("Jindo$","Harrier")%>%
+    str_replace("Brittany Spaniel","Brittany")%>%
+    str_replace("Anatolian Shepherd Dog","Anatolian Sheepdog")%>%
+    str_replace("Old English Sheepdog","Old English Sheepdog (Bobtail)")%>%
+    str_replace("Dachshund, Wirehaired$","Dachshund")%>%
+    str_replace("Dachshund, Wirehaired, Miniature","Dachshund")%>%
+    str_replace("Japanese Chin/Spaniel","Japanese Chin")%>%
+    str_replace("Pomsky","Pomeranian")%>%
+    str_replace("Mastiff, Bull","Bullmastiff")%>%
+    str_replace("Collie, Smooth Coat","Collie (Rough) & (Smooth)")%>%
+    str_replace("Australian Silky Terrier","Silky Terrier")%>%
+    str_replace("Manchester Terrier","Manchester Terrier (Standard)")%>%
+    str_replace("Miniature Bull Terrier","French Bulldog")%>%
+    str_replace("Smooth Fox Terrier","Fox Terrier")%>%
+    str_replace("Greater Swiss Mountain Dog","Great Swiss Mountain Dog")%>%
+    str_replace("Glen of Imaal Terrier","Glen Imaal Terrier")%>%
+    str_replace("Schipperkee","Schipperke")%>%
+    str_replace("Airedale Terrier","Airdale Terrier")%>%
+    str_replace("Dutch Shepherd","German Shepherd Dog")%>%
+    str_replace("Flat-Coated Retriever","Flat Coated Retriever")%>%
+    str_replace("Lagotto Romagnolo","Poodle Standard")%>%
+    str_replace("Boerboel","Saint Bernard")%>%
+    str_replace("Portuguese Podengo Pequeno","Ibizan Hound")%>%
+    str_replace("Japanese Spitz","Finnish Spitz")%>%
+    str_replace("Biewer Terrier","Toy Fox Terrier")%>%
+    str_replace("Entlebucher Mountain Dog","Australian Shepherd")%>%
+    str_replace("Pharoh hound","Pharaoh Hound")%>%
+    str_replace("Dogo Argentino", "Doberman Pinscher")%>%
+    str_replace("Australian Kelpie", "Australian Cattle Dog")
   ) %>%
   anti_join(breed_sizes) %>% arrange(-n)
 
-sum(cleaned$n)
+sum(cleanedcount$n)
 
 breed_sizes %>% filter(Breed %>% str_detect("nese"))
+breed_sizes %>% filter(Breed %>% str_detect("[Pp]it"))
+breed_sizes %>% filter(Breed %>% str_detect("[Bb]ull"))
+cleanedcount %>% filter(Breed %>% str_detect("[Bb]ull"))
+cleanedcount %>% arrange(-n)
+breed_sizes %>% arrange(Breed)
+
+```
+Once breeds without a match in the size file are consolidated into those that do match, there are 16,073 dogs (15,797 unknown breed) who do not have a match.
+
+Joining the sizes and doggos files
+```{r}
+#all dogs, breeds consolidated, joined with sizes
+doggos_sizes = doggos %>% mutate(
+  Breed = BreedName %>% 
+    str_replace("Mastiff, French \\(Dogue de Bordeaux\\)","Bullmastiff")%>%
+    str_replace("Terrier mix" ,"Fox Terrier")%>%
+    str_replace("^Terrier Crossbreed" ,"Fox Terrier")%>%
+    str_replace(" Crossbreed", "") %>%
+    str_replace_all(" [Mm]ix", "") %>%
+    str_replace("American Pit Bull / Pit Bull" ,"Bull Terrier")  %>%
+    str_replace("American Pit Bull Terrier/Pit Bull" ,"Bull Terrier")%>%
+    str_replace("Bull Dog, English", "Bull Dog")%>%
+    str_replace("^Bulldog$", "Bull Dog")%>%
+    str_replace("^Cocker Spaniel" ,"Cocker Spaniel-American")%>%
+    str_replace("Havanese" ,"Bichon Frise")%>%
+    str_replace("German Shepherd Dog" ,"German Shepherd Dog")%>%
+    str_replace("German Shepherd$" ,"German Shepherd Dog")%>%
+    str_replace("Poodle$" ,"Poodle Miniature")%>%
+    str_replace("Poodle, Toy" ,"Poodle Toy")%>%
+    str_replace("Poodle, Miniature" ,"Poodle Miniature")%>%
+    str_replace("Schnauzer, Miniature" ,"Poodle Miniature")%>%
+    str_replace("Labradoodle" ,"Labrador Retriever")%>%
+    str_replace("Miniature Pinscher" ,"Poodle Miniature")%>%
+    str_replace("Goldendoodle" ,"Poodle Standard")%>%
+    str_replace("Poodle, Standard" ,"Poodle Standard")%>%
+    str_replace("Morkie" ,"Yorkshire Terrier")%>%
+    str_replace("Puggle" ,"Beagle")%>%
+    str_replace("Bull Dog, French" ,"French Bulldog")%>%
+    str_replace("Lhasa Apso" ,"Shih Tzu")%>%
+    str_replace("Dachshund Smooth Coat" ,"Dachshund")%>%
+    str_replace("Miniature Schnauzer" ,"Poodle Miniature")%>%
+    str_replace("Rat Terrier" ,"Boston Terrier")%>%
+    str_replace("Wheaton Terrier" ,"Soft-Coated Wheaten Terrier")%>%
+    str_replace("Maltipoo" ,"Poodle Toy")%>%
+    str_replace("West High White Terrier" ,"West Highland White Terrier")%>%
+    str_replace("Pekingese" ,"Shih Tzu")%>%
+    str_replace("Dachshund Smooth Coat Miniature" ,"Dachshund")%>%
+    str_replace("Dachshund Miniature" ,"Dachshund")%>%
+    str_replace("Dachshund, Long Haired Miniature" ,"Dachshund")%>%
+    str_replace("American Bully" ,"Bull Terrier")%>%
+    str_replace("American Eskimo dog" ,"American Eskimo")%>%
+    str_replace("Shetland Sheepdog" ,"Shetland Sheepdog (Sheltie)")%>%
+    str_replace("Welsh Corgi, Pembroke" ,"Cardigan Welsh Corgi")%>%
+    str_replace("Pembroke Welsh Corgi" ,"Cardigan Welsh Corgi")%>%
+    str_replace("Cane Corso" ,"Rottweiler")%>%
+    str_replace("Collie, Border" ,"Border Collie")%>%
+    str_replace("^Collie$" ,"Border Collie")%>%
+    str_replace("Shar-Pei, Chinese" ,"Chinese Shar Pei")%>%
+    str_replace("Schnauzer, Standard" ,"Standard Schnauzer")%>%
+    str_replace("Dachshund, Long Haired" ,"Dachshund")%>%
+    str_replace("Wire Fox Terrier" ,"Fox Terrier")%>%
+    str_replace("^Schnauzer$" ,"Standard Schnauzer")%>%
+    str_replace("Jack Russell Terrier" ,"Fox Terrier")%>%
+    str_replace("Bassett Hound" ,"Basset Hound")%>%
+    str_replace("Shepard" ,"Australian Shepherd")%>%
+    str_replace("Cockapoo" ,"Poodle Miniature")%>%
+    str_replace("Welsh Corgi, Cardigan" ,"Cardigan Welsh Corgi")%>%
+    str_replace("Soft Coated Wheaten Terrier" ,"Soft-Coated Wheaten Terrier")%>%
+    str_replace("Bull Dog, American" ,"Bull Dog")%>%
+    str_replace("Norfolk Terrier" ,"Silky Terrier")%>%
+    str_replace("Chinese Shar-Pei" ,"Chinese Shar Pei")%>%
+    str_replace("Pointer, German Shorthaired" ,"German Shorthaired Pointer")%>%
+    str_replace("Collie, Rough Coat" ,"Collie (Rough) & (Smooth)")%>%
+    str_replace("Mastiff, Old English" ,"Mastiff")%>%
+    str_replace("Schnauzer, Giant" ,"Giant Schnauzer")%>%
+    str_replace("^Russell Terrier" ,"Fox Terrier")%>%
+    str_replace("Parson Russell Terrier" ,"Fox Terrier")%>%
+    str_replace("Mastiff, Neapolitan" ,"Neopolitan Mastiff")%>%
+    str_replace("Pointer, German Wirehaired" ,"German Wirehaired Pointer")%>%
+    str_replace("German Spitz" ,"Finnish Spitz")%>%
+    str_replace("Collie, Bearded" ,"Bearded Collie")%>%
+    str_replace("St. Bernard" ,"Saint Bernard")%>%
+    str_replace("Dogue de Bordeaux" ,"Bullmastiff")%>%
+    str_replace("Australian Cattledog","Australian Cattle Dog")%>%
+    str_replace("English Cocker Spaniel", "Cocker Spaniel-English")%>%
+    str_replace("Plott", "Plott Hound")%>%
+    str_replace("Miniature American Shepherd","Standard Schnauzer")%>%
+    str_replace("Cotton De Tulear","Coton de Tulear")%>%
+    str_replace("Norwich Terrier","Silky Terrier")%>%
+    str_replace("Coonhound, Black and Tan","Black And Tan Coonhound")%>%
+    str_replace("Coonhound, Treeing Walker","Black And Tan Coonhound")%>%
+    str_replace("Black and Tan Coonhound","Black And Tan Coonhound")%>%
+    str_replace("Treeing Walker Coonhound","Black And Tan Coonhound")%>%
+    str_replace("Bluetick Coonhound","Black And Tan Coonhound")%>%
+    str_replace("American English Coonhound","Black And Tan Coonhound")%>%
+    str_replace("Coonhound, Blue Tick","Black And Tan Coonhound")%>%
+    str_replace("Miniature Australian Shepherd","Standard Schnauzer")%>%
+    str_replace("Catahoula Leopard Dog","Beauceron")%>%
+    str_replace("Jindo Dog, Korea","Harrier")%>%
+    str_replace("Jindo$","Harrier")%>%
+    str_replace("Brittany Spaniel","Brittany")%>%
+    str_replace("Anatolian Shepherd Dog","Anatolian Sheepdog")%>%
+    str_replace("Old English Sheepdog","Old English Sheepdog (Bobtail)")%>%
+    str_replace("Dachshund, Wirehaired$","Dachshund")%>%
+    str_replace("Dachshund, Wirehaired, Miniature","Dachshund")%>%
+    str_replace("Japanese Chin/Spaniel","Japanese Chin")%>%
+    str_replace("Pomsky","Pomeranian")%>%
+    str_replace("Mastiff, Bull","Bullmastiff")%>%
+    str_replace("Collie, Smooth Coat","Collie (Rough) & (Smooth)")%>%
+    str_replace("Australian Silky Terrier","Silky Terrier")%>%
+    str_replace("Manchester Terrier","Manchester Terrier (Standard)")%>%
+    str_replace("Miniature Bull Terrier","French Bulldog")%>%
+    str_replace("Smooth Fox Terrier","Fox Terrier")%>%
+    str_replace("Greater Swiss Mountain Dog","Great Swiss Mountain Dog")%>%
+    str_replace("Glen of Imaal Terrier","Glen Imaal Terrier")%>%
+    str_replace("Schipperkee","Schipperke")%>%
+    str_replace("Airedale Terrier","Airdale Terrier")%>%
+    str_replace("Dutch Shepherd","German Shepherd Dog")%>%
+    str_replace("Flat-Coated Retriever","Flat Coated Retriever")%>%
+    str_replace("Lagotto Romagnolo","Poodle Standard")%>%
+    str_replace("Boerboel","Saint Bernard")%>%
+    str_replace("Portuguese Podengo Pequeno","Ibizan Hound")%>%
+    str_replace("Japanese Spitz","Finnish Spitz")%>%
+    str_replace("Biewer Terrier","Toy Fox Terrier")%>%
+    str_replace("Entlebucher Mountain Dog","Australian Shepherd")%>%
+    str_replace("Pharoh hound","Pharaoh Hound")%>%
+    str_replace("Dogo Argentino", "Doberman Pinscher")%>%
+    str_replace("Australian Kelpie", "Australian Cattle Dog")
+  ) %>%
+  inner_join(breed_sizes)
+
+doggos_sizes
+
+```
+dropping dogs named "UNKNOWN", "N/A", or "NAME NOT PROVIDED" & missing sizes
+```{r}
+doggos_sizes = doggos_sizes %>% filter(!AnimalName == "UNKNOWN" & !AnimalName == "N/A" & !AnimalName == "NAME NOT PROVIDED" & !is.na(sizes))
 ```
 
-Create some categorical variable indicating size.
+PMI Scores
 
 ```{r}
-
+doggos_counts = doggos_sizes %>%
+  group_by(sizes, AnimalName)%>%
+  summarize(count = n())%>%
+  ungroup()
 ```
+```{r}
+doggos_pmi = doggos_counts%>%
+  # total number of names
+  mutate(total_names = sum(count))%>%
+  # share of all names the name has
+  group_by(AnimalName) %>%
+  mutate(name_share = sum(count) / total_names)%>%
+  # define documents as sizes
+  group_by(sizes)%>%
+  mutate(sizes_name_share = count / sum(count))%>%
+  mutate(ratio = sizes_name_share / name_share)
+
+doggos_pmi %>%
+  arrange(-count)
+
+doggos_pmi %>%
+  arrange(-ratio)
+
+doggos_pmi%>% 
+  filter(AnimalName == "MAX")
+```
+
+```{r}
+doggos_sizes %>% group_by(sizes) %>% summarize(n = n()) %>% mutate(totaldogs = sum(n))%>% mutate(percentsize = (n / totaldogs)*100) %>% arrange(-percentsize)
+
+doggos_sizes %>% group_by(AnimalName) %>% summarize(n = n()) %>% arrange(-n) %>% pull(AnimalName) %>% head(12)
+```
+
+Top 12 most frequent names are: "BELLA"   "MAX"     "CHARLIE" "COCO"    "ROCKY"   "LOLA"    "LUNA"    "LUCY" "BUDDY" "LUCKY" "DAISY"   "TEDDY" 
+Will look at a chart of these names:
+
+```{r}
+doggos_pmi%>%
+  filter(AnimalName %in% c("BELLA", "MAX", "CHARLIE", "COCO", "ROCKY", "LOLA", "LUNA", "LUCY", "BUDDY", "LUCKY","DAISY",  "TEDDY"))%>%
+  ggplot +
+  geom_point(aes(y = sizes, x = ratio)) +
+  facet_wrap(~AnimalName) +
+  scale_x_continuous(labels = scales::percent)
+```
+For some the names which appear most frequently in this NYC dog registration data set, the rate at which dogs are given names seems to be associated, at least correlationally, with the size groups the dogs fall into. Several size-associated-naming patterns appear, though not consistently across names or size groups: some names are much more or less common in just one size group (e.g.; Luna is more common among medium dogs, Buddy is much less common among Extra Large dogs), other names become less common among dogs as the size groups get larger (e.g.; Coco, Lucky, and Teddy), and some names seem to be more or less common on either end of the size scale (e.g.; Bella and Luna). Still, other names do not seem to vary much between size categories such as Daisy and, to a lesser extent, Max. A possible shortcoming of this analysis is how few dogs coded as Extra Large are in this dataset (~0.8% of dogs), which may be throwing off the results - perhaps coding these dogs into the Large category would yielded clearer results, though pmi score differences do appear between the Large and Extra Large categories for several names. Additionally these size categories were created based on the "average" breed weight (calculated by the mean of minimum and maximum weights - not the true average weight of a given breed) only, but the range of weights for some breeds is quite large and may have resulted in miscategorization of some breeds' actual size. 
