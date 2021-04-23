@@ -5,4 +5,46 @@ date: "4/9/2021"
 output: html_document
 ---
 
-test
+Create the avg income by zip 
+```{r}
+x <- NYCMedianIncomes_byZIp %>% 
+  group_by(Location) %>%
+  summarise(Income = mean(`Median Income`))
+```
+
+Join x with doggos and create canines by zip
+```{r}
+CaninesByZip <- doggos %>%
+  left_join(x, by = c("ZipCode" = "Location")) %>%
+  filter(ZipCode >=10000, Income != "NA", BreedName != "Unknown") %>%
+  count(BreedName, ZipCode, Income) %>%
+  group_by(ZipCode) %>%
+  arrange(ZipCode, desc(n))
+```
+
+Total Dogs by ZipCode
+```{r}
+DogsByZip <- CanineClass %>%
+  group_by(ZipCode) %>%
+  summarise(TotalDogs = sum(n))
+```
+
+Add percents of total dogs column
+```{r}
+CanineClass <- CaninesByZip %>%
+  left_join(DogsByZip, by = c("ZipCode" = "ZipCode")) %>%
+  mutate(Percent = (n/TotalDogs)*100)
+```
+
+Get Top Dogs by Zip Code
+```{r} 
+TopDogsbyZip <- CanineClass %>%
+  group_by(ZipCode) %>%
+  slice_max(order_by = Percent, n = 1)
+```
+
+```{r} 
+TopDogsbyZip %>%
+  ggplot() + aes(Income, n, colour = BreedName) + 
+  geom_point() + ggtitle("Top Dogs by Income")
+```
