@@ -1,0 +1,70 @@
+---
+title: "Jojo Article: What names should I call out in a given park?"
+output: html_notebook
+---
+
+In this article, I attempt to tackle the question of which dogs' names are most common in which parks. If I, a dogless person, were to visit a park, what name might I call to effectively fake having a dog in that park? 
+
+I needed to understand a few things first about how the dog licenses relate to the parks. FirstI load the data for the dogs, taking advantage of the cleaning functions so generously shared with the class. I also read in the data about neighborhoods by zip code. 
+
+Load dogs data, zip code data, parks data
+```{r}
+source("R/loading.R")
+source("R/utils.R")
+
+doggos = load_dogs() %>% exclude_duplicate_dogs() %>% exclude_nonZips()
+neighborhoods = read.csv("data/nyczips.csv") 
+parks_map <- read_sf("data/Parks_properties_nyc/geo_export_f25559d8-4d80-4ee6-ac8f-57f761c6cda6.shp")
+```
+```{r}
+doggos %>%
+  arrange(ZipCode)
+```
+
+I need to join my datasets to figure out which dogs live in which hoods.
+```{r}
+joined = doggos %>% 
+  inner_join(neighborhoods, by = "ZipCode")
+```
+
+What does that look like? 
+```{r}
+joined %>%
+  filter(Neighborhood == "East Harlem")
+  
+```
+
+What are the most common names by neighborhood?
+```{r}
+
+```
+
+Check out the parks_map
+```{r}
+parks_map %>% 
+  ggplot() + geom_sf() + geom_sf_label() + aes(label = signname)
+```
+
+Labeling park names in latitude and longitude does little to help me understand which dogs are closest to which parks. I'd better attempt to add the neighborhood data to my dogs by way of a join.
+
+Group zip codes into neighborhoods
+
+```{r}
+doggos %>%
+  select()
+```
+
+```
+
+Group parks into zip codes
+```{r}
+
+```
+
+
+Map parks per zip code
+```{r}
+
+```
+
+
