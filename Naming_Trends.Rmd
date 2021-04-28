@@ -1,15 +1,109 @@
 ---
-title: "Dog Name Trends"
-output: html_notebook
+title: "The Trends of Naming Dogs in New York City between 2000-2016"
+author: "Ahmet Yusuf Yuksek"
+date: "4/28/2021"
+output: html_document
 ---
 
 
 ```{r}
+library(tidyverse)
+library(HumanitiesDataAnalysis)
+library(arrow)
+library(ggplot2)
 source("R/loading.R")
 source("R/utils.R")
+```
+The main of this study to investigate the naming trends for dogs in New York City. My project will demonstrate the top 10 dogs names for each year and their change over time. I will also observe the significance of gender in these trends.
 
-data = load_dogs()
-data
+
+First of all, I need to learn statistically important birth years in order to analyze naming treats. After a short investigation of our data, it seems that most of the dogs were born after 2000. Therefore, I exclude entries before that year.
+
+```{r}
+data = load_dogs() %>% only_clean_names() %>% exclude_duplicate_dogs()
+data %>%
+  group_by(AnimalBirthMonth) %>%
+  summarize(count=n()) %>%
+  arrange(-count)
+
+data_after_2000 <- data %>%
+  filter(AnimalBirthMonth >= 2000)
+```
+
+There is one more step in the data cleaning process. Since I focus exclusively on dogs born in New York City, I need to exclude entries from other zip codes. We need to use inner_join() here between our main data and zips data. I also need to drop unknown names.
+
+
+```{r}
+zips <- load_zips()
+clean_data <- data_after_2000 %>% inner_join(zips, c("ZipCode"="ZipCode"))
+```
+Now that we have a cleaner data, we can start data manipulations. First thing is to find out top 10 names each year between 2000-2016 and visualize them. (I am not sure whether I should normalize the name counts or not here).
+
+```{r}
+namecount_each_year <- clean_data %>%
+  filter(AnimalName != "UNKNOWN" & AnimalName != "NONE" & AnimalName != "NAME" & AnimalName != "NOT") %>%
+  group_by(AnimalName, AnimalBirthMonth, AnimalGender) %>%
+  summarize(count=n())
+  
+non_gendered_ranked_names <- namecount_each_year %>%
+  arrange(AnimalBirthMonth, desc(count)) %>%
+  group_by(AnimalBirthMonth) %>%
+  mutate(rank = row_number())
+
+
+gendered_ranked_names <- non_gendered_ranked_names %>%
+  arrange(AnimalBirthMonth, AnimalGender, desc(count)) %>%
+  group_by(AnimalBirthMonth, AnimalGender) %>%
+  mutate(gender_rank = row_number())
 
 ```
+
+Since we have have ranks of every name in each year and for each gender, we can start visualize our data. First lets look at the name trends regardless of gender. I will use area charts.
+
+```{r}
+top10 <- gendered_ranked_names %>%
+  filter(rank<=10)
+  
+ggplot(top10) +
+  aes(x=AnimalBirthMonth, y=count, fill=AnimalName) +
+  theme_bw() +
+  geom_area(alpha=0.6 , size=.2, color="White") + 
+  scale_x_continuous(breaks=seq(2000,2016,2)) +
+  guides(fill = guide_legend(reverse=FALSE))
+  
+```
+A similar chart for female dog names.
+
+```{r}
+top10_F <- gendered_ranked_names %>%
+  filter(rank<=10 & AnimalGender == "F")
+
+ggplot(top10_F) +
+  aes(x=AnimalBirthMonth, y=count, fill=AnimalName) +
+  theme_bw() +
+  geom_area(alpha=0.6 , size=.2, color="White") + 
+  scale_x_continuous(breaks=seq(2000,2016,2)) 
+```
+It seems that the name, Bella have become popular from the beginning of 2000. This may be related to the Bella character in the Twilight movie series, who became very popular the last decade.
+
+And lastly, for male dogs.
+
+```{r}
+top10_M <- gendered_ranked_names %>%
+  filter(rank<=10 & AnimalGender == "M")
+
+ggplot(top10_M) +
+  aes(x=AnimalBirthMonth, y=count, fill=AnimalName) +
+  theme_bw() +
+  geom_area(alpha=0.6 , size=.2, color="White") + 
+  scale_x_continuous(breaks=seq(2000,2016,2)) +
+  guides(fill = guide_legend(reverse=FALSE))
+```
+
+
+
+
+
+
+
 
