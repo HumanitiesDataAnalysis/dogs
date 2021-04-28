@@ -18,6 +18,11 @@ exclude_duplicate_dogs = function(frame) {
       .keep_all = TRUE
     )
 }
+exclude_nonZips = function(frame) {
+  frame %>%
+    ungroup %>%
+    filter(ZipCode >=10000)
+}
 
 library(HumanitiesDataAnalysis)
 
