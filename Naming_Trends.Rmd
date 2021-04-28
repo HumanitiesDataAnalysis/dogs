@@ -76,7 +76,7 @@ A similar chart for female dog names.
 
 ```{r}
 top10_F <- gendered_ranked_names %>%
-  filter(rank<=10 & AnimalGender == "F")
+  filter(gender_rank<=10 & AnimalGender == "F")
 
 ggplot(top10_F) +
   aes(x=AnimalBirthMonth, y=count, fill=AnimalName) +
@@ -90,7 +90,7 @@ And lastly, for male dogs.
 
 ```{r}
 top10_M <- gendered_ranked_names %>%
-  filter(rank<=10 & AnimalGender == "M")
+  filter(gender_rank<=10 & AnimalGender == "M")
 
 ggplot(top10_M) +
   aes(x=AnimalBirthMonth, y=count, fill=AnimalName) +
