@@ -7,12 +7,17 @@ output: html_document
 
 Create the avg income by zip 
 ```{r}
-x <- NYCMedianIncomes_byZIp %>% 
+library(tidyverse)
+source("R/loading.R")
+doggos = load_dogs()
+NYCMedianIncomes_byZip = read_csv("data/NYCMedianIncomes_byZIp.csv")
+x <- NYCMedianIncomes_byZip %>% 
   group_by(Location) %>%
   summarise(Income = mean(`Median Income`))
 ```
 
 Join x with doggos and create canines by zip
+
 ```{r}
 CaninesByZip <- doggos %>%
   left_join(x, by = c("ZipCode" = "Location")) %>%
