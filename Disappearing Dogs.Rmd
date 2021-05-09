@@ -5,16 +5,21 @@ date: "4/16/2021"
 output: html_document
 ---
 
-All dogs go to heaven, but some go upstate first.
+All dogs go to heaven, but some really do go upstate first.
 
-This study looks at what dogs disappear from the New York City license registry; that is,
-if a dog shows up in one year, does its license get renewed later? And what affects that 
+This study looks at "survivorship" in the statistical and the real sense by
+seeing what dogs disappear from the New York City license registry. 
+If a dog shows up in one year, does its license get renewed in later years?
+What affects that 
 decision? Logistic regression allows us to consider age, breed, and gender as separate factors. Knowing what breeds are likely vanish could guide dog buyers in thinking about
-what puppies might be unhappy in the city.
+what puppies might be unhappy in the city, and perhaps help dog actuaries better
+plan the dog annuities on dog life insurance policies. (This is an especially
+important question because dog annuitities pay out 
+7 times as much year as human annuities.)
 
 # Data creation
 
-We start with teh full dog name list, and filter down to clean names and exclude any duplicate licenses.
+We start with the full dog name list, and filter down to clean names and exclude any duplicate licenses.
 
 We then filter the criteria that are useful for identifying individual jobs or that 
 we think might affect retention.
@@ -34,7 +39,8 @@ Next, we build two separate frame: a reference set of all the dogs in 2016, and 
 comparison set of all the dogs in the 2017 and 2018 dumps with difference licenses.
 
 The question will be: how many dogs persist from one to the other? By doing a left_join
-from the reference to the outcome corpus, we get a column that indicates 
+from the reference to the outcome corpus, we get a column that indicates for each dog
+whether it existed in 2017.
 
 ```{r}
 
