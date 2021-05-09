@@ -42,8 +42,10 @@ Now that we have a cleaner data, we can start data manipulations. First thing is
 ```{r}
 namecount_each_year <- clean_data %>%
   filter(AnimalName != "UNKNOWN" & AnimalName != "NONE" & AnimalName != "NAME" & AnimalName != "NOT") %>%
-  group_by(AnimalName, AnimalBirthMonth, AnimalGender) %>%
-  summarize(count=n())
+  group_by(AnimalBirthMonth, AnimalName) %>%
+  summarize(count=n()) %>%
+  group_by(AnimalBirthMonth) %>%
+  mutate(percentage = 100 * count/sum(count))
   
 non_gendered_ranked_names <- namecount_each_year %>%
   arrange(AnimalBirthMonth, desc(count)) %>%
@@ -57,6 +59,17 @@ gendered_ranked_names <- non_gendered_ranked_names %>%
   mutate(gender_rank = row_number())
 
 ```
+
+```{r}
+namecount_each_year %>%
+#  inner_join(namecount_each_year %>% ungroup %>% sample_n(1, weight = percentage) %>% select(AnimalName)) %>%
+  filter(AnimalName == "QUEEN") %>%
+  ggplot() + geom_area(aes(y = percentage, x= AnimalBirthMonth, fill = AnimalName))
+  
+```
+
+
+
 
 Since we have have ranks of every name in each year and for each gender, we can start visualize our data. First lets look at the name trends regardless of gender. I will use area charts.
 
