@@ -1,0 +1,83 @@
+---
+title: "Disappearing Dogs"
+author: "Ben Schmidt"
+date: "4/16/2021"
+output: html_document
+---
+
+All dogs go to heaven, but some go upstate first.
+
+This study looks at what dogs disappear from the New York City license registry; that is,
+if a dog shows up in one year, does its license get renewed later? And what affects that 
+decision? Logistic regression allows us to consider age, breed, and gender as separate factors. Knowing what breeds are likely vanish could guide dog buyers in thinking about
+what puppies might be unhappy in the city.
+
+# Data creation
+
+We start with teh full dog name list, and filter down to clean names and exclude any duplicate licenses.
+
+We then filter the criteria that are useful for identifying individual jobs or that 
+we think might affect retention.
+
+```{r setup, include=FALSE}
+source("R/utils.R")
+source("R/loading.R")
+
+candidates = load_dogs() %>% 
+  exclude_duplicate_licenses() %>% only_clean_names
+
+subset = candidates %>%
+  select(AnimalGender, AnimalBirthMonth, BreedName, `Extract Year`, AnimalName, ZipCode)
+```
+
+Next, we build two separate frame: a reference set of all the dogs in 2016, and then a
+comparison set of all the dogs in the 2017 and 2018 dumps with difference licenses.
+
+The question will be: how many dogs persist from one to the other? By doing a left_join
+from the reference to the outcome corpus, we get a column that indicates 
+
+```{r}
+
+reference = subset %>%
+  filter(`Extract Year` == 2016)
+
+# From outcome, select only the factors we need to match into the 2016 set.
+outcome = subset %>%
+  filter(`Extract Year` >= 2017) %>% 
+  select(BreedName, ZipCode, AnimalName) %>%
+  mutate(in_2018 = TRUE)
+
+modelable = reference %>% left_join(outcome) %>%
+  mutate(in_2018 = in_2018 %>% replace_na(FALSE))
+
+modelable %>% count(AnimalGender, in_2018)
+```
+
+This data is now suitable for logistic regression. We filter to dogs between 0 and 18, only looking at the 25 most common breeds.
+```{r}
+modelable = modelable %>%
+  mutate(age = 2016 - AnimalBirthMonth) %>%
+  mutate(BreedName = fct_lump(BreedName, 35) %>% relevel("Unknown")) %>%
+  filter(age < 19, age >= 0)
+  
+  
+model = glm(in_2018 ~ factor(age) + BreedName + AnimalGender + 0, data = modelable, family = "binomial")
+```
+
+We can look at the summaries here. These regression coefficients show significance as stars.
+
+```{r}
+model %>% summary
+```
+
+Tidyverse provides a method to sweep these up. We can see the factors that make a dog especially likely to stay in the set (being 7, 8, or 9; heing a Havanese or Shih Tzu)
+and those that make a dog especially likely to vanish (being very young, or a pit bull; marginally more likely if male rather than female.)
+
+```{r}
+model %>%
+  broom::tidy() %>%
+  arrange(-estimate) %>%
+  ggplot() +
+  geom_errorbar(aes(x = reorder(term, estimate), ymin = estimate - std.error, ymax=estimate + std.error )) + coord_flip()
+```
+
